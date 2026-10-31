@@ -3,14 +3,21 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, onBeforeUnmount} from 'vue';
+import {ref, onMounted, onBeforeUnmount, watch} from 'vue';
 import * as THREE from 'three';
+
+const props = defineProps<{
+    color: string;
+    roughness: number;
+    metalness: number;
+}>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let cube: THREE.Mesh;
+let material: THREE.MeshStandardMaterial;
 let animationFrameId: number;
 
 onMounted(() => {
@@ -18,13 +25,13 @@ onMounted(() => {
 
     //1. scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);
+    scene.background = new THREE.Color(0x0f172a);
 
     //2. camera
     const width = containerRef.value.clientWidth;
     const height = containerRef.value.clientHeight;
     camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(3, 3, 5);
+    camera.position.set(3, 2, 4);
     camera.lookAt(0, 0, 0);
 
     //3. renderer
@@ -34,19 +41,23 @@ onMounted(() => {
     containerRef.value.appendChild(renderer.domElement);
 
     //4. lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    directionalLight.position.set(5,10,7);
-    scene.add(directionalLight);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    keyLight.position.set(5, 5, 5);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.0);
+    fillLight.position.set(-5, -2, -2);
+    scene.add(fillLight);
 
     //5. temporary placeholder mesh (product)
     const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-    const material = new THREE.MeshStandardMaterial({
-        color: 0x4f46e5,
-        roughness: 0.3,
-        metalness: 0.8
+    material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(props.color),
+        roughness: props.roughness,
+        metalness: props.metalness
     });
     cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
@@ -62,6 +73,28 @@ onMounted(() => {
     //7. responsive window resize
     window.addEventListener('resize', onWindowResize);
 });
+
+//watch state props and update Three.js material properties accordingly
+watch(
+    () => props.color,
+    (newColor) => {
+        if(material) material.color.set(newColor);
+    }
+);
+
+watch(
+    () => props.roughness,
+    (val) => {
+        if(material) material.roughness = val;
+    }
+);
+
+watch(
+    () => props.metalness,
+    (val) => {
+        if(material) material.metalness = val;
+    }
+);
 
 const onWindowResize = () => {
     if(!containerRef.value||!renderer||!camera) return;

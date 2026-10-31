@@ -2,7 +2,11 @@
     <div class="studio-layout">
         <!-- Left: 3D Product Viewport-->
          <main class="viewport-section">
-            <Viewer3D />
+            <Viewer3D 
+            :color="config.color"
+            :roughness="config.roughness"
+            :metalness="config.metalness"
+            />
          </main>
 
          <!-- Right: Configuration Panel -->
@@ -12,18 +16,76 @@
                 <p> enterprise 3D configuration tool</p>
             </header>
             <div class="config-body">
+                <!-- Color Selection -->
                 <section class="config-card">
-                    <h3>Material Customization</h3>
-                    <p class="hint">Select finish options below to preview changes in real-time.</p>
-                    <!-- configuration controls will go here -->
+                    <h3>Color Palette</h3>
+                    <div class="color-options">
+                        <button
+                        v-for="colorOption in colorSwatches"
+                        :key="colorOption.hex"
+                        class="swatch-btn"
+                        :class="{active: config.color === colorOption.hex}"
+                        :style="{backgroundColor: colorOption.hex}"
+                        :title="colorOption.name"
+                        @click="config.color = colorOption.hex"
+                        ></button>
+                    </div>
                 </section>
+
+                <!-- Material Options -->
+                 <section class="config-card">
+                    <h3>Surface Finish</h3>
+
+                    <div class="control-group">
+                        <label>
+                            <span>Roughness</span>
+                            <span>{{ Math.round(config.roughness * 100) }}%</span>
+                        </label>
+                        <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        v-model.number="config.roughness"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <span>Metalness</span>
+                            <span>{{ Math.round(config.metalness * 100) }}%</span>
+                        </label>
+                        <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        v-model.number="config.metalness"
+                        />
+                    </div>
+                 </section>
             </div>
           </aside>
     </div>
 </template>
 
 <script setup lang="ts">
+import { reactive } from 'vue';
 import Viewer3D from './components/Viewer3D.vue';
+
+const config = reactive({
+    color: '#6366f1',
+    roughness: 0.3,
+    metalness: 0.8,
+});
+
+const colorSwatches = [
+    { name: 'Indigo', hex: '#6366f1' },
+    { name: 'Emerald', hex: '#10b981' },
+    { name: 'Rose', hex: '#f43f5e' },
+    { name: 'Amber', hex: '#f59e0b' },
+    { name: 'Slate', hex: '#64748b' },
+];
 </script>
 
 <style lang="scss">
@@ -48,13 +110,13 @@ body, html {
 
 .studio-layout {
     display: grid;
-    grid-template-columns: 1fr 400px;
+    grid-template-columns: 1fr 380px;
     width: 100%;
     height: 100vh;
 
     @media (max-width: 1024px) {
         grid-template-columns: 1fr;
-        grid-template-rows: 60vh 1fr;
+        grid-template-rows: 55vh 1fr;
     }
 }
 
@@ -96,17 +158,59 @@ body, html {
             background-color: #0f172a;
             border: 1px solid #334155;
             border-radius: 8px;
-            padding: 16px;
+            padding: 20px;
 
             h3 {
-                font-size: 1rem;
+                font-size: 0.95rem;
                 font-weight: 600;
-                margin-bottom: 8px;
+                margin-bottom: 16px;
+                color: #e2e8f0;
             }
 
-            .hint {
-                font-size: 0.8125rem;
-                color: #94a3b8;
+            .color-options {
+                display: flex;
+                gap: 12px;
+
+                .swatch-btn {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    transition: transform 0.15s ease, border-color 0.15s ease;
+
+                    &.hover {
+                        transform: scale(1.1);
+                    }
+
+                    &.active {
+                        border-color: #ffffff;
+                        box-shadow: 0 0 0 2px #6366f1;
+                    }
+                }
+            }
+
+            .control-group {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+
+                &:not(:last-child) {
+                    margin-bottom: 16px;
+                }
+
+                label {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.85rem;
+                    color: #94a3b8;
+                }
+
+                input[type="range"]{
+                    width: 100%;
+                    accent-color: #6366f1;
+                    cursor: pointer;
+                }
             }
         }
     }
