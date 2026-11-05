@@ -12,6 +12,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 const props = defineProps<{
+    activePart: 'body' | 'speakers';
     color: string;
     roughness: number;
     metalness: number;
@@ -25,7 +26,9 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let loadedModel: THREE.Group | null = null;
-const managedMaterials: THREE.MeshStandardMaterial[] = [];
+
+const bodyMaterials: THREE.MeshStandardMaterial[] = [];
+const speakerMaterials: THREE.MeshStandardMaterial[] = [];
 let animationFrameId: number;
 
 onMounted(() => {
@@ -84,34 +87,45 @@ onMounted(() => {
 
     //6. load GLTF Product Model (Using a public sample for demonstration purposes)
     const loader = new GLTFLoader();
-    const modelUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoomBox/glTF-Binary/BoomBox.glb';
+    const modelUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/master/Models/ToyCar/glTF-Binary/ToyCar.glb';
 
     loader.load(
         modelUrl,
         (gltf) => {
-            loadedModel = gltf.scene;
-            loadedModel.scale.set(40, 40, 40);
-            loadedModel.position.set(0, -0.2, 0);
+      loadedModel = gltf.scene;
+      loadedModel.scale.set(25, 25, 25);
+      loadedModel.position.set(0, -0.3, 0);
 
-            //traverse the model to find all Mesh objects and apply a standard material
-            loadedModel.traverse((child) => {
-                if((child as THREE.Mesh).isMesh) {
-                    const mesh = child as THREE.Mesh;
-                    if(mesh.material && (mesh.material as THREE.MeshStandardMaterial).isMeshStandardMaterial)
-                    {
-                        const mat = mesh.material as THREE.MeshStandardMaterial;
-                        // Override with initial props
-                        mat.color.set(props.color);
-                        mat.roughness = props.roughness;
-                        mat.metalness = props.metalness;
-                        managedMaterials.push(mat);
-                    }
-                }
-            });
+      loadedModel.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          console.log('Car Mesh Name:', mesh.name);
 
-            scene.add(loadedModel);
-            loading.value = false;
-        },
+          if (mesh.material && (mesh.material as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+            const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+            mesh.material = mat; // Ensure independent instance cloning
+
+            const name = mesh.name.toLowerCase();
+
+            if (name.includes('toycar')) {
+              // Main body panels
+              mat.color.set(props.color);
+              bodyMaterials.push(mat);
+            } else if (name.includes('fabric') || name.includes('glass')) {
+              // Interior / trim / windows mapped to the second tab
+              if (name.includes('glass')) {
+                mat.transparent = true;
+                mat.opacity = 0.5; // Keeps windows looking sleek and realistic
+              }
+              speakerMaterials.push(mat);
+            }
+          }
+        }
+      });
+
+      scene.add(loadedModel);
+      loading.value = false;
+    },
         (xhr) => {
             console.log((xhr.loaded / xhr.total * 100) + '% loaded');
         },
@@ -137,27 +151,24 @@ onMounted(() => {
 watch(
     () => props.color,
     (newColor) => {
-        managedMaterials.forEach((material) => {
-            material.color.set(newColor);
-        });
+        const targetGroup = props.activePart === 'body' ? bodyMaterials : speakerMaterials;
+        targetGroup.forEach((mat) => mat.color.set(newColor));
     }
 );
 
 watch(
     () => props.roughness,
     (val) => {
-        managedMaterials.forEach((material) => {
-            material.roughness = val;
-        });
+        const targetGroup = props.activePart === 'body' ? bodyMaterials : speakerMaterials;
+        targetGroup.forEach((mat) => mat.roughness = val);
     }
 );
 
 watch(
     () => props.metalness,
     (val) => {
-        managedMaterials.forEach((material) => {
-            material.metalness = val;
-        });
+        const targetGroup = props.activePart === 'body' ? bodyMaterials : speakerMaterials;
+        targetGroup.forEach((mat) => mat.metalness = val);
     }
 );
 
